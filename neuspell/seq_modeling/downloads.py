@@ -2,9 +2,18 @@
 # taken from this StackOverflow answer: https://stackoverflow.com/a/39225039
 
 import os
-
+from huggingface_hub import hf_hub_download
 import requests
 
+
+def download_file_from_hf_hb(repo_id, file_name, destination):
+    repo_id = "prithivida/" + repo_id
+    downloaded_file_wpath = hf_hub_download(repo_id=repo_id, filename=file_name, cache_dir=destination)
+    os.system("mv " + downloaded_file_wpath + " " + destination + "/" + file_name)
+    os.system("rm -rf "+ destination + "/" + "*.json")
+    os.system("rm -rf "+ destination + "/" + "*.lock")
+    return 
+    
 
 def download_file_from_google_drive(id, destination):
     URL = "https://docs.google.com/uc?export=download"
@@ -83,6 +92,8 @@ URL_MAPPINGS_FOR_LARGE_FILES = {
     }
 }
 
+HF_HUB_MODELS = set(["bertscrnn-probwordnoise", "cnn-lstm-probwordnoise", "elmoscrnn-probwordnoise"])
+
 URL_MAPPINGS_FOR_REGULAR_FILES = {
     "cnn-lstm-probwordnoise": {
         "pytorch_model.bin": "1-Bu9C96Vm2yMjhiHdnGk3tzORnmPl8ns",
@@ -138,29 +149,51 @@ def download_pretrained_model_large(ckpt_path: str):
 
 
 def _download_pretrained_model(ckpt_path: str):
+
     tag = os.path.split(ckpt_path)[-1]
-    if tag not in URL_MAPPINGS_FOR_REGULAR_FILES:
-        raise Exception(
-            f"Tried to load an unknown model - {tag}. Available choices are {[*URL_MAPPINGS_FOR_REGULAR_FILES.keys()]}")
-    create_paths(ckpt_path)
-    details = URL_MAPPINGS_FOR_REGULAR_FILES[tag]
+    print("debug: ", tag)
 
-    vocab_path = os.path.join(ckpt_path, "vocab.pkl")
-    if os.path.exists(vocab_path):
-        print(f"`vocab.pkl` already exists in {ckpt_path}. Continuing with other downloads ...")
-    else:
-        vocab_url = details["vocab.pkl"]
-        download_file_from_google_drive(vocab_url, vocab_path)
+    if tag in HF_HUB_MODELS:
+        create_paths(ckpt_path)
 
-    pytorch_model_path = os.path.join(ckpt_path, "pytorch_model.bin")
-    if os.path.exists(pytorch_model_path):
-        print(f"`pytorch_model.bin` already exists in {ckpt_path}. Continuing with other downloads ...")
+        vocab_path = os.path.join(ckpt_path, "vocab.pkl")
+        if os.path.exists(vocab_path):
+            print(f"`vocab.pkl` already exists in {ckpt_path}. Continuing with other downloads ...")
+        else:
+            download_file_from_hf_hb(tag, "vocab.pkl", ckpt_path)
+
+        pytorch_model_path = os.path.join(ckpt_path, "pytorch_model.bin")
+        if os.path.exists(pytorch_model_path):
+            print(f"`pytorch_model.bin` already exists in {ckpt_path}. Continuing with other downloads ...")
+        else:
+            print("Pretrained model downloading start from HF hub "
+                "(may take few seconds to couple of minutes based on download speed) ...")
+            download_file_from_hf_hb(tag, "pytorch_model.bin", ckpt_path)
+            print("Pretrained model download success")
     else:
-        print("Pretrained model downloading start "
-              "(may take few seconds to couple of minutes based on download speed) ...")
-        model_url = details["pytorch_model.bin"]
-        download_file_from_google_drive(model_url, pytorch_model_path)
-        print("Pretrained model download success")
+        if tag not in URL_MAPPINGS_FOR_REGULAR_FILES:
+            raise Exception(
+                f"Tried to load an unknown model - {tag}. Available choices are {[*URL_MAPPINGS_FOR_REGULAR_FILES.keys()]}")
+        create_paths(ckpt_path)
+        details = URL_MAPPINGS_FOR_REGULAR_FILES[tag]
+
+        vocab_path = os.path.join(ckpt_path, "vocab.pkl")
+        if os.path.exists(vocab_path):
+            print(f"`vocab.pkl` already exists in {ckpt_path}. Continuing with other downloads ...")
+        else:
+            vocab_url = details["vocab.pkl"]
+            download_file_from_google_drive(vocab_url, vocab_path)
+
+        pytorch_model_path = os.path.join(ckpt_path, "pytorch_model.bin")
+        if os.path.exists(pytorch_model_path):
+            print(f"`pytorch_model.bin` already exists in {ckpt_path}. Continuing with other downloads ...")
+        else:
+            print("Pretrained model downloading start from Google drive"
+                "(may take few seconds to couple of minutes based on download speed) ...")
+            model_url = details["pytorch_model.bin"]
+            download_file_from_google_drive(model_url, pytorch_model_path)
+            print("Pretrained model download success")
+            
     return
 
 

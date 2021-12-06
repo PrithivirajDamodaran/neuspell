@@ -41,7 +41,7 @@
 # Installation
 
 ```bash
-git clone https://github.com/neuspell/neuspell; cd neuspell
+git clone https://github.com/PrithivirajDamodaran/neuspell.git; cd neuspell
 pip install -e .
 ```
 
